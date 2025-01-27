@@ -1,4 +1,4 @@
-name: Docker Deploy Dist
+name: Test and build
 # on: [push,workflow_dispatch]
 on:
     push:
@@ -68,17 +68,11 @@ jobs:
             run: |
               docker push ${{ secrets.DOCKER_USERNAME }}/react-app:latest      
              
-    deploy:
+    Verify_build:
         needs: build
         runs-on: ubuntu-latest
         steps:
-            - name: Download Dist Artifact
-              uses: actions/download-artifact@v4
-              with:
-                name: dist-files
-                path: dist
-        
-            # Docker login
+
             - name: Log in to Docker Hub
               uses: docker/login-action@v2
               with:
