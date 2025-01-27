@@ -1,4 +1,4 @@
-name: Deploy Dist
+name: Docker Deploy Dist
 # on: [push,workflow_dispatch]
 on:
     push:
@@ -62,9 +62,9 @@ jobs:
               with:
                 name: dist-files
                 path: dist
-            - name: Deploy
-              run: echo "Deploy successful"
-            
+            # Checkout the repository
+            - name: Checkout code
+              uses: actions/checkout@v3          
             # Docker login
             - name: Log in to Docker Hub
               uses: docker/login-action@v2
