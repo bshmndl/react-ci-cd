@@ -1,17 +1,25 @@
 provider "aws" {
-  region = "us-east-1" # Specify the AWS region
+  region = "us-east-1" # Adjust to your instance's region
 }
 
-# Create a key pair (replace with your actual key pair name if you have one)
-resource "aws_key_pair" "deployer" {
-  key_name   = "minikube-key"
-  public_key = file("~/.ssh/id_rsa.pub") # Path to your public SSH key
+# VPC
+resource "aws_vpc" "vpc" {
+  cidr_block = "10.0.0.0/16"
+
+  tags = {
+    Name        = "demo_vpc"
+    Environment = "demo_environment"
+    Terraform   = "true"
+    region      = "us-east-1"
+  }
 }
 
-# Define a security group
-resource "aws_security_group" "minikube_sg" {
-  name_prefix = "minikube-sg-"
+# Security Groups
 
+# Security group for EC2 instance
+resource "aws_security_group" "ingress-ssh" {
+  name   = "ingress-ssh"
+  vpc_id = aws_vpc.vpc.id
   ingress {
     description = "Allow SSH"
     from_port   = 22
@@ -35,6 +43,21 @@ resource "aws_security_group" "minikube_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  ingress {
+    description = "Allow Port 8080 for Minikube"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  # Open Port 30080 for Minikube NodePort
+  ingress {
+    description = "Allow NodePort 30080 for Minikube"
+    from_port   = 30080
+    to_port     = 30080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   egress {
     from_port   = 0
@@ -44,51 +67,122 @@ resource "aws_security_group" "minikube_sg" {
   }
 }
 
-# Create an Ubuntu EC2 instance
-resource "aws_instance" "minikube_instance" {
-  ami           = "ami-08c40ec9ead489470" # Ubuntu 22.04 LTS AMI ID (update to match your region)
-  instance_type = "t2.medium"             # Adjust based on your requirements
-  key_name      = aws_key_pair.deployer.key_name
-  security_groups = [
-    aws_security_group.minikube_sg.name,
-  ]
-
-  # Install Minikube via user data script
-  user_data = <<-EOF
-    #!/bin/bash
-    # Update packages and install dependencies
-    apt-get update -y
-    apt-get upgrade -y
-    apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
-
-    # Install Docker
-    apt-get install -y docker.io
-    sudo systemctl enable docker
-    sudo systemctl start docker
-
-    # Install Minikube
-    curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-    chmod +x minikube-linux-amd64
-    mv minikube-linux-amd64 /usr/local/bin/minikube
-
-    # Install kubectl
-    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-    chmod +x kubectl
-    mv kubectl /usr/local/bin/kubectl
-
-    # Start Minikube
-    minikube start --driver=none
-
-    # Enable bash completion for kubectl
-    echo 'source <(kubectl completion bash)' >>~/.bashrc
-  EOF
+# public subnet
+resource "aws_subnet" "public_subnets" {
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = "10.0.0.0/24"
+  availability_zone = "us-east-1b"
 
   tags = {
-    Name = "Minikube-Ubuntu-Instance"
+    Name      = "public_subnets"
+    Terraform = "true"
+  }
+}
+# route table associations
+resource "aws_route_table_association" "public" {
+  depends_on     = [aws_subnet.public_subnets]
+  route_table_id = aws_route_table.public_route_table.id
+  subnet_id      = aws_subnet.public_subnets.id
+}
+
+# Internet Gateway
+resource "aws_internet_gateway" "internet_gateway" {
+  vpc_id = aws_vpc.vpc.id
+  tags = {
+    Name = "demo_igw"
+  }
+}
+#route tables for public  subnet
+resource "aws_route_table" "public_route_table" {
+  vpc_id = aws_vpc.vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.internet_gateway.id
+  }
+  tags = {
+    Name      = "demo_public_rtb"
+    Terraform = "true"
   }
 }
 
+resource "aws_instance" "minikube-server" {
+  ami                         = "ami-04b4f1a9cf54c11d0" # Ubuntu AMI
+  instance_type               = "t2.medium"
+  subnet_id                   = aws_subnet.public_subnets.id
+  security_groups             = [aws_security_group.ingress-ssh.id]
+  associate_public_ip_address = true
+  key_name                    = aws_key_pair.generated.key_name
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = tls_private_key.generated.private_key_pem
+    host        = self.public_ip
+  }
+
+  provisioner "local-exec" {
+    command = "chmod 600 ${local_file.private_key_pem.filename}"
+  }
+
+  # Provisioner to install NGINX
+  provisioner "remote-exec" {
+
+    inline = [
+      "sudo apt-get update -y",
+      "sudo apt-get upgrade -y",
+      "sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release",
+
+      # Install Docker
+      "sudo apt-get install -y docker.io",
+      "sudo systemctl enable docker",
+      "sudo systemctl start docker",
+      "sudo usermod -aG docker $USER",
+
+      # Install Minikube
+      "curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64",
+      "chmod +x minikube-linux-amd64",
+      "sudo mv minikube-linux-amd64 /usr/local/bin/minikube",
+
+      # Install kubectl
+      "curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl",
+      "chmod +x kubectl",
+      "sudo mv kubectl /usr/local/bin/kubectl",
+
+      # Start Minikube (using none driver)
+      "sudo minikube start --driver=none",
+
+      # Enable bash completion for kubectl
+      "echo 'source <(kubectl completion bash)' >> ~/.bashrc"
+    ]
+  }
+  tags = {
+    Name = "Minikube EC2 Server"
+  }
+
+  lifecycle {
+    ignore_changes = [security_groups]
+  }
+
+
+}
+
+resource "tls_private_key" "generated" {
+  algorithm = "RSA"
+}
+resource "local_file" "private_key_pem" {
+  content  = tls_private_key.generated.private_key_pem
+  filename = "MyAWSKey.pem"
+}
+resource "aws_key_pair" "generated" {
+  key_name   = "MyAWSKey"
+  public_key = tls_private_key.generated.public_key_openssh
+
+  lifecycle {
+    ignore_changes = [key_name]
+  }
+}
+
+
 output "instance_public_ip" {
-  value       = aws_instance.minikube_instance.public_ip
-  description = "Public IP of the EC2 instance where Minikube is installed"
+  value = aws_instance.minikube-server.public_ip
 }
