@@ -106,7 +106,7 @@ jobs:
             # Run the Docker container locally for testing
             - name: Run Docker container
               run: |
-                docker run -d -p 80:5173 --name react-app-test ${{ secrets.DOCKER_USERNAME }}/react-app:latest
+                docker run -d -p 80:80 --name react-app-test ${{ secrets.DOCKER_USERNAME }}/react-app:latest
             
             # Test container health (optional, if healthcheck is defined)
             - name: Test container health

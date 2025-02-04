@@ -11,5 +11,5 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.js'],
   },
-  base: '/react-ciccd-actions/'
+  base: '/'
 })
