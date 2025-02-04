@@ -150,6 +150,7 @@ resource "aws_instance" "minikube-server" {
 
       # Start Minikube (using none driver)
       "sudo minikube start --driver=none",
+      "minikube start",
 
       # Enable bash completion for kubectl
       "echo 'source <(kubectl completion bash)' >> ~/.bashrc"
