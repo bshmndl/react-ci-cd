@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-east-1" # Adjust to your instance's region
+  region = "us-east-1" 
 }
 
 # VPC
@@ -114,8 +114,8 @@ resource "aws_instance" "minikube-server" {
   associate_public_ip_address = true
   key_name                    = aws_key_pair.generated.key_name
   root_block_device {
-    volume_size = 30  # Set root volume to 30GB
-    volume_type = "gp3"  # You can change this to "gp2" if needed
+    volume_size = 30  
+    volume_type = "gp3"  
     delete_on_termination = true
   }
   connection {
@@ -129,7 +129,7 @@ resource "aws_instance" "minikube-server" {
     command = "chmod 600 ${local_file.private_key_pem.filename}"
   }
 
-  # Provisioner to install NGINX
+ 
   provisioner "remote-exec" {
 
     inline = [
@@ -148,16 +148,16 @@ resource "aws_instance" "minikube-server" {
       "chmod +x minikube-linux-amd64",
       "sudo mv minikube-linux-amd64 /usr/local/bin/minikube",
 
-      # Install kubectl
+      
       "curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl",
       "chmod +x kubectl",
       "sudo mv kubectl /usr/local/bin/kubectl",
 
-      # Start Minikube (using none driver)
+      
       "sudo minikube start --driver=none",
       "minikube start",
 
-      # Enable bash completion for kubectl
+      
       "echo 'source <(kubectl completion bash)' >> ~/.bashrc"
     ]
   }

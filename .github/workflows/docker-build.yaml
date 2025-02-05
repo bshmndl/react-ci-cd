@@ -35,11 +35,11 @@ jobs:
         steps:
             - uses: actions/checkout@v3
               with:
-                fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+                fetch-depth: 0  
             - name: SonarCloud Scan
               uses: SonarSource/sonarcloud-github-action@master
               env:
-                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
                 SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
     build:  
         needs: test
@@ -104,18 +104,17 @@ jobs:
                 password: ${{ secrets.DOCKER_PASSWORD }}
             
             
-            # Run the Docker container locally for testing
             - name: Run Docker container
               run: |
                 docker run -d -p 80:80 --name react-app-test ${{ secrets.DOCKER_USERNAME }}/react-app:latest
             
-            # Test container health (optional, if healthcheck is defined)
+  
             - name: Test container health
               run: |
                 sleep 10 # Wait for the container to be ready
                 curl -f http://localhost || exit 1
             
-            # Stop and remove the test container
+           
             - name: Cleanup
               run: |
                 docker stop react-app-test && docker rm react-app-test
@@ -124,7 +123,7 @@ jobs:
         needs: [test, build, Verify_build]
         runs-on: ubuntu-latest
         if: always()
-        environment: Dev # Specify the environment where secrets are stored
+        environment: Dev 
         steps:
             - name: Send Email Notification
               uses: dawidd6/action-send-mail@v3
