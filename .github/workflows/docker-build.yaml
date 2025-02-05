@@ -44,9 +44,6 @@ jobs:
         needs: test
         continue-on-error: true
         environment: Dev  # Specifies that this job uses the 'Dev' environment
-        env:
-          NODE_VERSIONS: '["12", "16", "18", "20"]'
-          OPERATING_SYSTEM: '["ubuntu-latest", "windows-latest"]'
         strategy:
           matrix:
             node-version: ${{ vars.NODE_VERSIONS }}
