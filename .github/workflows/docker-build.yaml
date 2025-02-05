@@ -45,12 +45,12 @@ jobs:
         continue-on-error: true
         environment: Dev  # Specifies that this job uses the 'Dev' environment
         env:
-          NODE_VERSIONS: ${{ vars.NODE_VERSIONS }}
-          OPERATING_SYSTEM: ${{ vars.OPERATING_SYSTEM }}
+          NODE_VERSIONS: '["12", "16", "18", "20"]'
+          OPERATING_SYSTEM: '["ubuntu-latest", "windows-latest"]'
         strategy:
           matrix:
-            node-version: ${{ fromJson(vars.NODE_VERSIONS) }}
-            operating-system: ${{ fromJson(vars.OPERATING_SYSTEM) }}
+            node-version: ${{ fromJson(env.NODE_VERSIONS) }}
+            operating-system: ${{ fromJson(env.OPERATING_SYSTEM) }}
             include:
               - node-version: 18
                 operating-system: ubuntu-latest
