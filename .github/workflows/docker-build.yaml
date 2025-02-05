@@ -45,8 +45,8 @@ jobs:
         continue-on-error: true
         strategy:
           matrix:
-            node-version: [12, 14, 16, 20]
-            operating-system: [ubuntu-latest, windows-latest]
+            node-version: ${{ fromJson(env.NODE_VERSIONS) }}
+            operating-system: ${{ fromJson(env.OPERATING_SYSTEM) }}
             include:
               - node-version: 18
                 operating-system: ubuntu-latest
