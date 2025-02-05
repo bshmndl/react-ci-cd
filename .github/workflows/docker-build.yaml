@@ -49,8 +49,8 @@ jobs:
           OPERATING_SYSTEM: '["ubuntu-latest", "windows-latest"]'
         strategy:
           matrix:
-            node-version: ${{ fromJson(env.NODE_VERSIONS) }}
-            operating-system: ${{ fromJson(env.OPERATING_SYSTEM) }}
+            node-version: ${{ vars.NODE_VERSIONS }}
+            operating-system: ${{ vars.OPERATING_SYSTEM }}
             include:
               - node-version: 18
                 operating-system: ubuntu-latest
