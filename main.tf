@@ -113,6 +113,11 @@ resource "aws_instance" "minikube-server" {
   security_groups             = [aws_security_group.ingress-ssh.id]
   associate_public_ip_address = true
   key_name                    = aws_key_pair.generated.key_name
+  root_block_device {
+    volume_size = 30  # Set root volume to 30GB
+    volume_type = "gp3"  # You can change this to "gp2" if needed
+    delete_on_termination = true
+  }
   connection {
     type        = "ssh"
     user        = "ubuntu"

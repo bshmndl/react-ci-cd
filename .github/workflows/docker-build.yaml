@@ -118,3 +118,34 @@ jobs:
             - name: Cleanup
               run: |
                 docker stop react-app-test && docker rm react-app-test
+
+    notify:
+        needs: [test, build, Verify_build]
+        runs-on: ubuntu-latest
+        if: always()
+        environment: Dev # Specify the environment where secrets are stored
+        steps:
+            - name: Send Email Notification
+              uses: dawidd6/action-send-mail@v3
+              with:
+                server_address: smtp.gmail.com
+                server_port: 587
+                username: ${{ secrets.MAIL_USERNAME }}  # Uses environment secret
+                password: ${{ secrets.MAIL_PASSWORD }}  # Uses environment secret
+                subject: "GitHub Actions Build Status - ${{ github.repository }}"
+                to: ${{ secrets.MAIL_RECEIVER }}  # Uses environment secret
+                from: GitHub Actions
+                body: |
+                  Hello,
+                  
+                  The GitHub Actions workflow for repository **${{ github.repository }}** has completed.
+
+                  **Workflow Status:** ${{ job.status }}
+                  **Branch:** ${{ github.ref }}
+                  **Commit:** ${{ github.sha }}
+                  **Triggered By:** ${{ github.actor }}
+
+                  Visit the [GitHub Actions Page](${{ github.server_url }}/${{ github.repository }}/actions) for details.
+
+                  Regards,
+                  GitHub Actions Bot
