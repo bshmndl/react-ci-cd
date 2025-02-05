@@ -10,9 +10,7 @@ on:
     pull_request:
       types: [opened, synchronize, reopened]        
     workflow_dispatch:     
-env:
-  NODE_VERSIONS: ${{ vars.NODE_VERSIONS }}
-  OPERATING_SYSTEM: ${{ vars.OPERATING_SYSTEM }}       
+
 jobs:
     test:
         runs-on: ubuntu-latest
@@ -46,10 +44,6 @@ jobs:
     build:  
         needs: test
         continue-on-error: true
-        environment: Dev  # Specifies that this job uses the 'Dev' environment
-        env:
-          NODE_VERSIONS: ${{ vars.NODE_VERSIONS }}
-          OPERATING_SYSTEM: ${{ vars.OPERATING_SYSTEM }}
         strategy:
           matrix:
             node-version: ${{ fromJson(vars.NODE_VERSIONS) }}
